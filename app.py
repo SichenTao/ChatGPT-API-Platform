@@ -11,12 +11,31 @@ from streamlit_webrtc import webrtc_streamer, WebRtcMode
 import wave
 from datetime import datetime, date, time
 
-# —— 导入拆分后的工具模块 ——
+import streamlit.components.v1 as components  # ← 用于插入打印按钮
+
 from utils.chatgpt_client import get_client, chat_completion
-from utils.md2pdf_xhtml import markdown_to_pdf_bytes  # 将 Markdown 渲染为 PDF（xhtml2pdf 实现）
 
 # —— 页面配置 ——
 st.set_page_config(page_title="ChatGPT API 平台", layout="wide")
+
+# —— “打印本页”按钮：放在最顶端，固定在页面右上角 —— 
+print_button_html = """
+<button onclick="window.print()" style="
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    padding: 8px 12px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    z-index: 9999;
+">🖨️ 打印本页</button>
+"""
+# 在 Streamlit 页面里渲染这段 HTML（height 设置得很小，不会占据太多视觉区域）
+components.html(print_button_html, height=40)
 
 # —— 分类规则 ——
 CATEGORY_RULES = OrderedDict([
@@ -106,6 +125,7 @@ if "session_pdfs" not in st.session_state:
 if "session_images" not in st.session_state:
     st.session_state.session_images = []
 
+# 标题
 st.title("💬 ChatGPT API 平台 & 八字运势")
 
 # ====================================================
@@ -132,7 +152,7 @@ if category == "八字运势":
         help="选择用于八字运势分析的 ChatGPT 模型"
     )
 
-    # ------------------- 单人运势查询 -------------------
+    # ---------- 单人运势查询 ----------
     if mode == "个人运势查询":
         st.markdown(f"**参考日期（今天）：{today}**")
         # —— 收集单人信息 ——
@@ -219,22 +239,9 @@ if category == "八字运势":
                 st.subheader("📜 八字运势结果（Markdown 格式）")
                 st.markdown(answer)
 
-                # —— 生成 PDF：将 Header 信息与 answer 合并成一个 Markdown 文本 ——
-                header_md = (
-                    "# 个人八字运势报告\n\n"
-                    f"- 生成日期：{today}\n"
-                    f"- 姓名：{name}    性别：{gender}    出生：{birth_text}\n\n"
-                    "---\n\n"
-                )
-                full_markdown = header_md + answer
-
-                pdf_bytes = markdown_to_pdf_bytes(full_markdown)
-                st.download_button(
-                    label="⬇️ 下载 PDF 报告（Markdown 渲染）",
-                    data=pdf_bytes,
-                    file_name=f"{name}_八字运势报告.pdf",
-                    mime="application/pdf"
-                )
+                # —— 由于我们不再用 Python 生成 PDF，而是让用户直接“打印本页”，
+                #    所以这里仅保留在页面上的渲染，不需要再拼 PDF 了。 
+                #    如果你还想要生成 PDF 文件并下载，可以在这里保留之前的 PDF 生成代码。
 
     # ------------------- 两人星宿配对 -------------------
     else:
@@ -295,7 +302,7 @@ if category == "八字运势":
                     "5. **配对吉凶评估**：根据八字和大运流年对比，给出整体配对吉凶结论，至少包含情感/婚姻层面与事业/合作层面两方面。\n"
                     "6. **日常相处建议**：结合双方八字和五行特点，给出具体生活化建议（如“宜在阴历X月Y日举办婚礼”，或“佩戴金饰、红色摆件以化解冲煞”）。\n"
                     "7. **化解或增益方法**：如果存在冲克或冲煞，说明可采用的化解方式（佩戴何种饰品、家中摆放何物、工作座位方位等）。\n"
-                    "8. **结论**：最后做全局总结，语言生动接地气，条理清晰，字数不少于 800 字。\n"
+                    "8. **结论**：最后给出全局总结，语言生动接地气，条理清晰，字数不少于 800 字。\n"
                 )
                 user_prompt_pair = (
                     f"参考日期（今天）：**{today}**。\n\n"
@@ -319,30 +326,14 @@ if category == "八字运势":
                 st.subheader("💞 两人星宿配对结果（Markdown 格式）")
                 st.markdown(answer_pair)
 
-                # —— 生成 PDF：将 Header 信息与 answer_pair 合并成 Markdown 文本 ——
-                header_md_pair = (
-                    "# 两人星宿配对报告\n\n"
-                    f"- 生成日期：{today}\n"
-                    f"- 姓名1：{name1}    性别1：{gender1}    出生1：{birth_text1}\n"
-                    f"- 姓名2：{name2}    性别2：{gender2}    出生2：{birth_text2}\n\n"
-                    "---\n\n"
-                )
-                full_markdown_pair = header_md_pair + answer_pair
-
-                pair_pdf_bytes = markdown_to_pdf_bytes(full_markdown_pair)
-                st.download_button(
-                    label="⬇️ 下载 配对 PDF 报告（Markdown 渲染）",
-                    data=pair_pdf_bytes,
-                    file_name=f"{name1}_{name2}_星宿配对报告.pdf",
-                    mime="application/pdf"
-                )
+                # —— 同样不再生成 PDF，用户可直接用页面右上角“🖨️ 打印本页”按钮来打印/存 PDF —— 
 
     # “八字运势” 分支结束后，跳过后续模型流程
     st.stop()
 
 # ====================================================
-# —— 以下为 原有：多模态 / 视觉、语音识别、语音合成、图像生成、代码模型、聊天 等逻辑 ——
-#    （保持与之前一致，仅作复制粘贴）
+# —— 以下为原有：多模态 / 视觉、语音识别、语音合成、图像生成、代码模型、聊天 等逻辑 —— 
+#    （保持与之前一致，仅作复制粘贴） 
 # ====================================================
 
 # —— 公共上传控件：PDF & 图片 ——
@@ -457,7 +448,7 @@ elif category == "语音合成" and gen_tts and tts_prompt:
 elif category == "代码模型" and code_request:
     with st.spinner("生成代码…"):
         if model == "codex-mini-latest":
-            st.error("模型 'codex-mini-latest' 仅支持 /v1/responses，SDK 不直接支持。")
+            st.error("模型 'codex-mini-latest' 仅支持 /v1/responses，SDK 不支持。")
             code = ""
         else:
             try:
