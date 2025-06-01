@@ -16,7 +16,7 @@ from utils.chatgpt_client import get_client, chat_completion
 st.set_page_config(page_title="ChatGPT API 平台", layout="wide", initial_sidebar_state="expanded")
 
 # —— 分类规则 ——
-#    已将“八字运势”移到最后一项
+#    确保“八字运势”在最后一项
 CATEGORY_RULES = OrderedDict([
     ("多模态 / 视觉", lambda m: m.startswith("gpt-4o") or m.startswith("chatgpt-4o") or "vision" in m),
     ("推理 (O1/O3/O4)", lambda m: m.startswith(("o1", "o3", "o4"))),
@@ -57,7 +57,29 @@ MODEL_INFO = {
 # —— 侧边栏：填写 API Key ——
 st.sidebar.title("配置")
 api_key = st.sidebar.text_input("OpenAI API Key", type="password", help="在此处粘贴你的 OpenAI API Key")
+
 if not api_key:
+    # 主界面显示人性化提示（加粗、加大字号与颜色）
+    st.markdown(
+        """
+        <div style="
+            padding: 24px; 
+            border: 2px solid #e0e0e0; 
+            border-radius: 8px; 
+            background-color: #fafafa;
+            margin-top: 20px;
+        ">
+            <h2 style="color:#333; font-size:28px; margin-bottom:10px;">
+                👋 欢迎使用 <strong style="color:#1f77b4;">ChatGPT API 平台</strong>
+            </h2>
+            <p style="color:#555; font-size:18px; line-height:1.6;">
+                <strong>请点击浏览器左上角的菜单按钮</strong>，<strong style="color:#d9534f;">打开侧边栏并填写您的 OpenAI API Key</strong>，<br>
+                以便继续使用本应用的所有功能。
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
     st.sidebar.error("请输入 API Key 才能继续")
     st.stop()
 
