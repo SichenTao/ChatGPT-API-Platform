@@ -1,5 +1,3 @@
-# 文件：app.py
-
 import streamlit as st
 from openai import OpenAI
 from pdfminer.high_level import extract_text
@@ -11,35 +9,15 @@ from streamlit_webrtc import webrtc_streamer, WebRtcMode
 import wave
 from datetime import datetime, date, time
 
-import streamlit.components.v1 as components  # ← 用于插入打印按钮
-
 from utils.chatgpt_client import get_client, chat_completion
 
 # —— 页面配置 ——
-st.set_page_config(page_title="ChatGPT API 平台", layout="wide")
-
-# —— “打印本页”按钮：放在最顶端，固定在页面右上角 —— 
-print_button_html = """
-<button onclick="window.print()" style="
-    position: fixed;
-    top: 16px;
-    right: 16px;
-    padding: 8px 12px;
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    font-size: 14px;
-    cursor: pointer;
-    z-index: 9999;
-">🖨️ 打印本页</button>
-"""
-# 在 Streamlit 页面里渲染这段 HTML（height 设置得很小，不会占据太多视觉区域）
-components.html(print_button_html, height=40)
+#    initial_sidebar_state="expanded"：桌面端默认展开
+st.set_page_config(page_title="ChatGPT API 平台", layout="wide", initial_sidebar_state="expanded")
 
 # —— 分类规则 ——
+#    已将“八字运势”移到最后一项
 CATEGORY_RULES = OrderedDict([
-    ("八字运势", None),
     ("多模态 / 视觉", lambda m: m.startswith("gpt-4o") or m.startswith("chatgpt-4o") or "vision" in m),
     ("推理 (O1/O3/O4)", lambda m: m.startswith(("o1", "o3", "o4"))),
     ("GPT-4 家族", lambda m: m.startswith("gpt-4") or m.startswith("chatgpt-4o")),
@@ -51,6 +29,7 @@ CATEGORY_RULES = OrderedDict([
     ("内容审核", lambda m: m.startswith("omni-moderation")),
     ("向量嵌入", lambda m: "embedding" in m),
     ("其他", None),
+    ("八字运势", None),
 ])
 
 def is_vision_model(mid: str) -> bool:
@@ -109,10 +88,15 @@ models.sort(key=lambda x: (
     4
 ))
 
-# —— 如果不是“八字运势”分类，显示模型下拉框 ——
+# —— 如果不是“八字运势”分类，显示模型下拉框，并添加“新建聊天”按钮 ——
 if category != "八字运势":
     model = st.sidebar.selectbox("模型", models)
     st.sidebar.markdown(f"**特点**：{MODEL_INFO.get(model, '暂无说明。')}")
+    # —— 新建聊天按钮：点击后清空会话状态，不用重新输入 API Key ——
+    if st.sidebar.button("新建聊天"):
+        st.session_state.messages = []
+        st.session_state.session_pdfs = []
+        st.session_state.session_images = []
 else:
     model = None
     st.sidebar.markdown("**功能说明**：此处使用 ChatGPT 接口进行八字排盘、流年流月分析、幸运色/数字/方位推荐、桃花财运预测，以及两人星宿配对。")
@@ -129,7 +113,7 @@ if "session_images" not in st.session_state:
 st.title("💬 ChatGPT API 平台 & 八字运势")
 
 # ====================================================
-# —— “八字运势”功能分支 ——
+# —— “八字运势” 功能分支 ——
 # ====================================================
 if category == "八字运势":
     st.header("🀄 八字运势 / 两人星宿配对 （基于 ChatGPT）")
@@ -239,10 +223,6 @@ if category == "八字运势":
                 st.subheader("📜 八字运势结果（Markdown 格式）")
                 st.markdown(answer)
 
-                # —— 由于我们不再用 Python 生成 PDF，而是让用户直接“打印本页”，
-                #    所以这里仅保留在页面上的渲染，不需要再拼 PDF 了。 
-                #    如果你还想要生成 PDF 文件并下载，可以在这里保留之前的 PDF 生成代码。
-
     # ------------------- 两人星宿配对 -------------------
     else:
         st.markdown(f"**参考日期（今天）：{today}**")
@@ -326,14 +306,11 @@ if category == "八字运势":
                 st.subheader("💞 两人星宿配对结果（Markdown 格式）")
                 st.markdown(answer_pair)
 
-                # —— 同样不再生成 PDF，用户可直接用页面右上角“🖨️ 打印本页”按钮来打印/存 PDF —— 
-
     # “八字运势” 分支结束后，跳过后续模型流程
     st.stop()
 
 # ====================================================
-# —— 以下为原有：多模态 / 视觉、语音识别、语音合成、图像生成、代码模型、聊天 等逻辑 —— 
-#    （保持与之前一致，仅作复制粘贴） 
+# —— 以下为原有：多模态 / 视觉、语音识别、语音合成、图像生成、代码模型、聊天 等逻辑 ——
 # ====================================================
 
 # —— 公共上传控件：PDF & 图片 ——
