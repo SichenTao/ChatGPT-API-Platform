@@ -1,0 +1,7 @@
+streamlit
+openai
+pdfminer.six
+streamlit-webrtc
+markdown 
+xhtml2pdf
+pdfkit
